@@ -1,0 +1,76 @@
+<h1>NES audio</h1>
+
+<p>Pulse 1: frequency <input type=range id=p1f value=440 min=200 max=800> <button id=p1play>PLAY</button> <button id=p1pause>PAUSE</button>
+ 
+<p>Pulse 2: frequency <input type=range id=p2f value=400 min=200 max=800> <button id=p2play>PLAY</button> <button id=p2pause>PAUSE</button> 
+
+<p>Triangle: frequency <input type=range id=tf value=440 min=200 max=800> <button id=tplay>PLAY</button> <button id=tpause>PAUSE</button> 
+
+<p>Noise: <button id=nplay>PLAY</button> <button id=npause>PAUSE</button> 
+
+<script>
+a1 = a2 = a3 = a4 = a5 = 0;
+o1 = o2 = o3 = 0;
+s4 = 0;
+
+p1play.onclick = () => {
+  if(o1) o1.stop();
+  if(!a1) a1 = new AudioContext();
+  o1 = new OscillatorNode(a1, {type: "square", frequency: p1f.value});
+  g1 = new GainNode(a1, {gain: 0.1});
+  o1.connect(g1).connect(a1.destination);
+  o1.start();
+}
+p1pause.onclick = () => {
+  o1.stop();
+}
+p1f.onchange=p1f.oninput=()=>{
+  if(o1) o1.frequency.setValueAtTime(p1f.value,1);
+}
+
+p2play.onclick = () => {
+  if(o2) o2.stop();
+  if(!a2) a2 = new AudioContext();
+  o2 = new OscillatorNode(a2, {type: "square", frequency: p2f.value});
+  g2 = new GainNode(a2, {gain: 0.1});
+  o2.connect(g2).connect(a2.destination);
+  o2.start();
+}
+p2pause.onclick = () => {
+  o2.stop();
+}
+p2f.onchange=p2f.oninput=()=>{
+  if(o2) o2.frequency.setValueAtTime(p2f.value,1);
+}
+
+tplay.onclick = () => {
+  if(o3) o3.stop();
+  if(!a3) a3 = new AudioContext();
+  o3 = new OscillatorNode(a3, {type: "triangle", frequency: tf.value});
+  g3 = new GainNode(a3, {gain: 0.1});
+  o3.connect(g3).connect(a3.destination);
+  o3.start();
+}
+tpause.onclick = () => {
+  o3.stop();
+}
+tf.onchange=tf.oninput=()=>{
+  if(o3) o3.frequency.setValueAtTime(tf.value,1);
+}
+
+nplay.onclick = () => {
+  if(s4) s4.stop();
+  if(!a4) a4 = new AudioContext();
+  m4=a4.createBuffer(1,2e5,48e3);
+  b4=m4.getChannelData(0);
+  for(i=2e5;i--;)b4[i]=(Math.random() * 2 - 1)/15;
+  s4=a4.createBufferSource();
+  s4.buffer=m4;
+  s4.connect(a4.destination);
+  s4.start();
+}
+npause.onclick = () => {
+  s4.stop();
+}
+
+</script>
