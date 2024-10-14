@@ -1,3 +1,4 @@
+<!doctype html>
 <h1>NES audio</h1>
 
 <p>Pulse 1: frequency <input type=range id=p1f value=440 min=200 max=800> <button id=p1play>PLAY</button> <button id=p1pause>PAUSE</button>
@@ -11,7 +12,10 @@
 <script>
 a1 = a2 = a3 = a4 = a5 = 0;
 o1 = o2 = o3 = 0;
-s4 = 0;
+p4 = 0;
+nsamples = [];
+nsample = 0;
+p4play = 0;
 
 p1play.onclick = () => {
   if(o1) o1.stop();
@@ -59,18 +63,20 @@ tf.onchange=tf.oninput=()=>{
 }
 
 nplay.onclick = () => {
-  if(s4) s4.stop();
+  p4play = 1;
   if(!a4) a4 = new AudioContext();
-  m4=a4.createBuffer(1,2e5,48e3);
-  b4=m4.getChannelData(0);
-  for(i=2e5;i--;)b4[i]=(Math.random() * 2 - 1)/15;
-  s4=a4.createBufferSource();
-  s4.buffer=m4;
-  s4.connect(a4.destination);
-  s4.start();
+  if(!p4){
+    p4 = a4.createScriptProcessor(512, 0, 1);
+    p4.connect(a4.destination);
+    p4.onaudioprocess = audioEvent => {
+      for(var i = 0; i < 512; i++){
+        audioEvent.outputBuffer.getChannelData(0)[i] = p4play ? (Math.random() * 2 - 1)/15 : 0;
+      }
+    }
+  }
 }
 npause.onclick = () => {
-  s4.stop();
+  p4play = 0;
 }
 
 </script>
