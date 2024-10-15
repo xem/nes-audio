@@ -1,82 +1,97 @@
 <!doctype html>
 <h1>NES audio</h1>
 
-<p>Pulse 1: frequency <input type=range id=p1f value=440 min=200 max=800> <button id=p1play>PLAY</button> <button id=p1pause>PAUSE</button>
+<p>Pulse 1: frequency <input type=range id=p1f value=440 min=100 max=800> <button id=p1play>PLAY</button> <button id=p1pause>PAUSE</button>
  
-<p>Pulse 2: frequency <input type=range id=p2f value=400 min=200 max=800> <button id=p2play>PLAY</button> <button id=p2pause>PAUSE</button> 
+<p>Pulse 2: frequency <input type=range id=p2f value=400 min=100 max=800> <button id=p2play>PLAY</button> <button id=p2pause>PAUSE</button> 
 
-<p>Triangle: frequency <input type=range id=tf value=440 min=200 max=800> <button id=tplay>PLAY</button> <button id=tpause>PAUSE</button> 
+<p>Triangle: frequency <input type=range id=tf value=440 min=100 max=800> <button id=tplay>PLAY</button> <button id=tpause>PAUSE</button> 
 
-<p>Noise: <button id=nplay>PLAY</button> <button id=npause>PAUSE</button> 
+<p>Noise: frequency <input type=range id=nf value=440 min=100 max=800> <button id=nplay>PLAY</button> <button id=npause>PAUSE</button> 
 
 <script>
 a1 = a2 = a3 = a4 = a5 = 0;
-o1 = o2 = o3 = 0;
+o1 = o2 = o3 = o4 = o5 = 0;
 p4 = 0;
 nsamples = [];
 nsample = 0;
 p4play = 0;
 
+// Pulse 1
 p1play.onclick = () => {
+  if(!a1){
+    a1 = new AudioContext();
+  }
   if(o1) o1.stop();
-  if(!a1) a1 = new AudioContext();
   o1 = new OscillatorNode(a1, {type: "square", frequency: p1f.value});
   g1 = new GainNode(a1, {gain: 0.1});
   o1.connect(g1).connect(a1.destination);
   o1.start();
 }
 p1pause.onclick = () => {
-  o1.stop();
+  if(o1) o1.stop();
 }
-p1f.onchange=p1f.oninput=()=>{
+p1f.onchange = p1f.oninput = () => {
   if(o1) o1.frequency.setValueAtTime(p1f.value,1);
 }
 
+// Pulse 2
 p2play.onclick = () => {
+  if(!a2){
+    a2 = new AudioContext();
+  }
   if(o2) o2.stop();
-  if(!a2) a2 = new AudioContext();
   o2 = new OscillatorNode(a2, {type: "square", frequency: p2f.value});
   g2 = new GainNode(a2, {gain: 0.1});
   o2.connect(g2).connect(a2.destination);
   o2.start();
 }
 p2pause.onclick = () => {
-  o2.stop();
+  if(o2) o2.stop();
 }
-p2f.onchange=p2f.oninput=()=>{
+p2f.onchange = p2f.oninput = () => {
   if(o2) o2.frequency.setValueAtTime(p2f.value,1);
 }
 
+// Triangle
 tplay.onclick = () => {
-  if(o3) o3.stop();
   if(!a3) a3 = new AudioContext();
+  if(o3) o3.stop();
   o3 = new OscillatorNode(a3, {type: "triangle", frequency: tf.value});
   g3 = new GainNode(a3, {gain: 0.1});
   o3.connect(g3).connect(a3.destination);
   o3.start();
 }
 tpause.onclick = () => {
-  o3.stop();
+  if(o3) o3.stop();
 }
-tf.onchange=tf.oninput=()=>{
+tf.onchange = tf.oninput = () => {
   if(o3) o3.frequency.setValueAtTime(tf.value,1);
 }
 
+// Noise
 nplay.onclick = () => {
-  p4play = 1;
   if(!a4) a4 = new AudioContext();
-  if(!p4){
-    p4 = a4.createScriptProcessor(512, 0, 1);
-    p4.connect(a4.destination);
-    p4.onaudioprocess = audioEvent => {
-      for(var i = 0; i < 512; i++){
-        audioEvent.outputBuffer.getChannelData(0)[i] = p4play ? (Math.random() * 2 - 1)/15 : 0;
-      }
-    }
+  if(o4) o4.stop();
+  o4 = new OscillatorNode(a4, {frequency: nf.value});
+  const real = new Float32Array(128);
+  const imag = new Float32Array(128);
+  for(var i=128;i--;){
+    real[i] = 3;
+    imag[i] = -Math.random()/3;
   }
+  const wave = a4.createPeriodicWave(real, imag, { disableNormalization: true });
+  o4.setPeriodicWave(wave)
+  g4 = new GainNode(a4, {gain: 0.1});
+  o4.connect(g4).connect(a4.destination);
+  o4.start();
 }
 npause.onclick = () => {
-  p4play = 0;
+  if(o4) o4.stop();
 }
+nf.onchange = nf.oninput = () => {
+  if(o4) o4.frequency.setValueAtTime(nf.value,1);
+}
+
 
 </script>
