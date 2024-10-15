@@ -1,56 +1,141 @@
 <!doctype html>
+<body style="font-family:calibri">
 <h1>NES audio</h1>
 
-<p>Pulse 1: frequency <input type=range id=p1f value=440 min=200 max=800> <button id=p1play>PLAY</button> <button id=p1pause>PAUSE</button>
- 
-<p>Pulse 2: frequency <input type=range id=p2f value=400 min=200 max=800> <button id=p2play>PLAY</button> <button id=p2pause>PAUSE</button> 
+<form id=f onsubmit="return false">
 
-<p>Triangle: frequency <input type=range id=tf value=440 min=200 max=800> <button id=tplay>PLAY</button> <button id=tpause>PAUSE</button> 
+<p>Pulse 1: 
+frequency: <input type=range id=p1f value=253 min=0 max=2047>
+ - duty: <input type=radio checked name=p1d value=0>0
+<input type=radio name=p1d value=1>1
+<input type=radio name=p1d value=2>2
+<input type=radio name=p1d value=3>3
+ - volume: <input type=range id=p1v value=3 min=0 max=3 step=1>
+ - <button id=p1play>PLAY</button>
+<button id=p1pause>PAUSE</button>
 
-<p>Noise: <button id=nplay>PLAY</button> <button id=npause>PAUSE</button> 
+<p>Pulse 2: 
+frequency: <input type=range id=p2f value=253 min=0 max=2047>
+ - duty: <input type=radio checked name=p2d value=0>0
+<input type=radio name=p2d value=1>1
+<input type=radio name=p2d value=2>2
+<input type=radio name=p2d value=3>3
+ - volume: <input type=range id=p2v value=3 min=0 max=3 step=1>
+ - <button id=p2play>PLAY</button>
+<button id=p2pause>PAUSE</button> 
+
+<p>Triangle:
+frequency: <input type=range id=tf value=235 min=0 max=2048>
+ - <button id=tplay>PLAY</button> <button id=tpause>PAUSE</button> 
+
+<p>Noise: volume: <input type=range id=nv value=15 min=0 max=15 step=1> - <button id=nplay>PLAY</button> <button id=npause>PAUSE</button> 
+
+</form>
 
 <script>
-a1 = a2 = a3 = a4 = a5 = 0;
-o1 = o2 = o3 = 0;
-p4 = 0;
-nsamples = [];
-nsample = 0;
-p4play = 0;
+pulse1audio = 0;
+pulse1processor = 0;
+pulse1duty = 0;
+pulse1freq = 440;
+pulse1play = 0;
+pulse1v = 0;
+pulse1vphase = 0;
+
+pulse2audio = 0;
+pulse2processor = 0;
+pulse2duty = 0;
+pulse2freq = 440;
+pulse2play = 0;
+pulse2v = 0;
+pulse2vphase = 0;
+
+o3 = a3 = g3 = 0;
+
+noiseaudio = 0;
+noiseprocessor = 0;
+noisesamples = [];
+noisesample = 0;
+noiseplay = 0;
+
+// Pulse 1
+// =======
+
+// Pulse timer t (period's length, encoded on 11 bits) = 0 to 2047
+// Pulse frequency f = 1789773/(16*(t+1))
+// Ex: if t = 253, f = ~440Hz. (440 pulses/second)
+// The AudioContext's sample rate is 44100Hz (44100 samples/second)
+// To play f pulses/second, a pulse must last s = 44100/f samples.
+// Ex: if t = 253, f = 440, s = ~100 samples/pulse.
+// A pulse contains 8 values, so each value must be played for v = 44100/f/8 samples
+// Ex: if t = 253, f = 440, s = 100, v = ~12 samples/value
+// So v = 44100/(1789773/(16*(t+1)))/8 = ~0.004928*(t+1)
+z = 0;
 
 p1play.onclick = () => {
-  if(o1) o1.stop();
-  if(!a1) a1 = new AudioContext();
-  o1 = new OscillatorNode(a1, {type: "square", frequency: p1f.value});
-  g1 = new GainNode(a1, {gain: 0.1});
-  o1.connect(g1).connect(a1.destination);
-  o1.start();
+  pulse1play = 1;
+  if(!pulse1audio) pulse1audio = new AudioContext({sampleRate:44100});
+  if(!pulse1processor){
+    pulse1processor = pulse1audio.createScriptProcessor(1024, 0, 1);
+    pulse1processor.connect(pulse1audio.destination);
+    pulse1processor.onaudioprocess = audioEvent => {
+      pulse1v = Math.ceil(0.04928*(+p1f.value+1));
+      console.log(p1f.value, pulse1v);
+      for(var i = 0; i < 1024 + pulse1vphase; i++){
+        audioEvent.outputBuffer.getChannelData(0)[i-pulse1vphase] = pulse1play && +p1f.value > 8 ? 
+        [
+          [-1,1,-1,-1,-1,-1,-1,-1],
+          [-1,1,1,-1,-1,-1,-1,-1],
+          [-1,1,1,1,1,-1,-1,-1],
+          [1,-1,-1,1,1,1,1,1],
+        ][f.p1d.value][(~~((i)/pulse1v))%8]/10 * ([0.125,0.25,0.5,0.75][+p1v.value]) : 0;
+      }
+      pulse1vphase = ((pulse1vphase + 1024)%(pulse1v*8))||0;
+    }
+  }
 }
 p1pause.onclick = () => {
-  o1.stop();
-}
-p1f.onchange=p1f.oninput=()=>{
-  if(o1) o1.frequency.setValueAtTime(p1f.value,1);
+  pulse1play = 0;
 }
 
+// Pulse 2
+// =======
+
 p2play.onclick = () => {
-  if(o2) o2.stop();
-  if(!a2) a2 = new AudioContext();
-  o2 = new OscillatorNode(a2, {type: "square", frequency: p2f.value});
-  g2 = new GainNode(a2, {gain: 0.1});
-  o2.connect(g2).connect(a2.destination);
-  o2.start();
+  pulse2play = 1;
+  if(!pulse2audio) pulse2audio = new AudioContext({sampleRate:44100});
+  if(!pulse2processor){
+    pulse2processor = pulse2audio.createScriptProcessor(1024, 0, 1);
+    pulse2processor.connect(pulse2audio.destination);
+    pulse2processor.onaudioprocess = audioEvent => {
+      pulse2v = Math.ceil(0.04928*(+p2f.value+1));
+      for(var i = 0; i < 1024 + pulse2vphase; i++){
+        audioEvent.outputBuffer.getChannelData(0)[i-pulse2vphase] = pulse2play && +p2f.value > 8 ? 
+        [
+          [-1,1,-1,-1,-1,-1,-1,-1],
+          [-1,1,1,-1,-1,-1,-1,-1],
+          [-1,1,1,1,1,-1,-1,-1],
+          [1,-1,-1,1,1,1,1,1],
+        ][f.p2d.value][(~~((i)/pulse2v))%8]/10 * ([0.125,0.25,0.5,0.75][+p2v.value]) : 0;
+      }
+      pulse2vphase = ((pulse2vphase + 1024)%(pulse2v*8))||0;
+    }
+  }
 }
 p2pause.onclick = () => {
-  o2.stop();
+  pulse2play = 0;
 }
-p2f.onchange=p2f.oninput=()=>{
-  if(o2) o2.frequency.setValueAtTime(p2f.value,1);
-}
+
+
+// Triangle
+// ========
+
+// Triangle's frequency is half the pulse's frequency
+// f = 1789773/(16*(t+1)) / 2 = ~55930/(t+1)
 
 tplay.onclick = () => {
   if(o3) o3.stop();
   if(!a3) a3 = new AudioContext();
-  o3 = new OscillatorNode(a3, {type: "triangle", frequency: tf.value});
+  o3 = new OscillatorNode(a3, {type: "triangle", frequency: 55930/(+tf.value+1)});
   g3 = new GainNode(a3, {gain: 0.1});
   o3.connect(g3).connect(a3.destination);
   o3.start();
@@ -59,24 +144,27 @@ tpause.onclick = () => {
   o3.stop();
 }
 tf.onchange=tf.oninput=()=>{
-  if(o3) o3.frequency.setValueAtTime(tf.value,1);
+  if(o3) o3.frequency.setValueAtTime(55930/(+tf.value+1),1);
+  console.log(55930/(+tf.value+1));
 }
 
+// Noise
+// =====
 nplay.onclick = () => {
-  p4play = 1;
-  if(!a4) a4 = new AudioContext();
-  if(!p4){
-    p4 = a4.createScriptProcessor(512, 0, 1);
-    p4.connect(a4.destination);
-    p4.onaudioprocess = audioEvent => {
+  noiseplay = 1;
+  if(!noiseaudio) noiseaudio = new AudioContext({sampleRate:44100});
+  if(!noiseprocessor){
+    noiseprocessor = noiseaudio.createScriptProcessor(512, 0, 1);
+    noiseprocessor.connect(noiseaudio.destination);
+    noiseprocessor.onaudioprocess = audioEvent => {
       for(var i = 0; i < 512; i++){
-        audioEvent.outputBuffer.getChannelData(0)[i] = p4play ? (Math.random() * 2 - 1)/15 : 0;
+        audioEvent.outputBuffer.getChannelData(0)[i] = noiseplay ? (Math.random() * 2 - 1)/15 * (+nv.value/15) : 0;
       }
     }
   }
 }
 npause.onclick = () => {
-  p4play = 0;
+  noiseplay = 0;
 }
 
 </script>
