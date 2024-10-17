@@ -7,11 +7,12 @@
 
 <p>Triangle: frequency <input type=range id=tt value=126 min=0 max=2048> (the volume is constant) &nbsp; <button id=tplay>PLAY</button> <button id=tpause>PAUSE</button> 
 
-<p>Noise: frequency <input type=range id=nf value=440 min=100 max=800> volume <input type=range id=nv value=15 min=0 max=15> <button id=nplay>PLAY</button> <button id=npause>PAUSE</button> 
+<p>Noise: frequency <input type=range id=nf value=12 min=0 max=15> volume <input type=range id=nv value=15 min=0 max=15> <button id=nplay>PLAY</button> <button id=npause>PAUSE</button> 
 
 <script>
 a1 = a2 = a3 = a4 = a5 = 0;
 o1 = o2 = o3 = o4 = o5 = 0;
+g1 = g2 = g3 = g4 = g5 = 0;
 
 // Pulse 1
 // =======
@@ -92,7 +93,7 @@ tt.onchange = tt.oninput = () => {
 nplay.onclick = () => {
   if(!a4) a4 = new AudioContext();
   if(o4) o4.stop();
-  o4 = new OscillatorNode(a4, {frequency: +nf.value});
+  o4 = new OscillatorNode(a4, {frequency: 111860.8/[4, 8, 16, 32, 64, 96, 128, 160, 202, 254, 380, 508, 762, 1016, 2034, 4068][+nf.value]});
   const real = new Float32Array(128);
   const imag = new Float32Array(128);
   for(var i=128;i--;){
@@ -109,7 +110,7 @@ npause.onclick = () => {
   if(o4) o4.stop();
 }
 nf.onchange = nf.oninput = () => {
-  if(o4) o4.frequency.setValueAtTime(+nf.value,1);
+  if(o4) o4.frequency.setValueAtTime(111860.8/[4, 8, 16, 32, 64, 96, 128, 160, 202, 254, 380, 508, 762, 1016, 2034, 4068][+nf.value],1);
 }
 nv.onchange = nv.oninput = () => {
   if(g4) g4.gain.value = 0.002 * (+nv.value/16);
